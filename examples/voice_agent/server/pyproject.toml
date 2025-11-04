@@ -1,0 +1,18 @@
+[project]
+name = "nemo-voice-agent"
+version = "0.1.0"
+description = "NeMo Voice Agent Server"
+requires-python = ">=3.12"
+dependencies = [
+    "nemo-toolkit[core,asr-only,tts]",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+    "omegaconf>=2.3.0",
+    "pipecat-ai[silero]>=0.0.84",
+    "onnxruntime>=1.23.2",
+]
+
+[tool.uv.sources]
+nemo-toolkit = { path = "../../..", editable = true }
