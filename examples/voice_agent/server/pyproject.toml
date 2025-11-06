@@ -2,7 +2,7 @@
 name = "nemo-voice-agent"
 version = "0.1.0"
 description = "NeMo Voice Agent Server"
-requires-python = ">=3.12"
+requires-python = ">=3.10.0"
 dependencies = [
     "nemo-toolkit[core,asr-only,tts]",
     "fastapi>=0.115.0",
@@ -12,7 +12,22 @@ dependencies = [
     "omegaconf>=2.3.0",
     "pipecat-ai[silero]>=0.0.84",
     "onnxruntime>=1.23.2",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "torchaudio>=2.8.0",
+    "ml-dtypes==0.4.1",
+    "onnx<1.17.0",
 ]
 
+[[tool.uv.index]]
+name = "nvidia-torch"
+url = "https://pypi.jetson-ai-lab.io/jp6/cu126"
+
 [tool.uv.sources]
+torch = { index = "nvidia-torch" }
+torchvision = { index = "nvidia-torch" }
+torchaudio = { index = "nvidia-torch" }
 nemo-toolkit = { path = "../../..", editable = true }
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
