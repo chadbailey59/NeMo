@@ -34,9 +34,9 @@ from pipecat.serializers.protobuf import ProtobufFrameSerializer
 from nemo.agents.voice_agent.pipecat.processors.frameworks.rtvi import RTVIObserver
 from nemo.agents.voice_agent.pipecat.services.nemo.diar import NemoDiarService
 from nemo.agents.voice_agent.pipecat.services.nemo.llm import get_llm_service_from_config
-from nemo.agents.voice_agent.pipecat.services.nemo.stt import NemoSTTService
 from nemo.agents.voice_agent.pipecat.services.nemo.tts import KokoroTTSService, NeMoFastPitchHiFiGANTTSService
 from nemo.agents.voice_agent.pipecat.services.nemo.turn_taking import NeMoTurnTakingService
+from custom_stt_service import CustomNemoSTTService
 from nemo.agents.voice_agent.pipecat.transports.network.websocket_server import (
     WebsocketServerParams,
     WebsocketServerTransport,
@@ -153,7 +153,7 @@ async def run_bot_websocket_server():
 
     logger.info("Initializing STT service...")
 
-    stt = NemoSTTService(
+    stt = CustomNemoSTTService(
         model=STT_MODEL_PATH,
         device=STT_DEVICE,
         params=stt_params,

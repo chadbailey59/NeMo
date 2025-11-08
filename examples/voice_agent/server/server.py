@@ -17,6 +17,9 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
+# Force vLLM to use V0 engine on Jetson/ARM platforms to avoid triton dependency
+os.environ['VLLM_USE_V1'] = '0'
+
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket

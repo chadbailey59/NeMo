@@ -84,10 +84,15 @@ class NeMoStreamingDiarService:
         print("NeMoLegacyDiarService initialized")
 
     def build_diarizer(self):
+        # Load to CPU first to avoid CUDA memory allocation issues on Jetson
         if self.cfg.model_path.endswith(".nemo"):
-            diar_model = SortformerEncLabelModel.restore_from(self.cfg.model_path, map_location=self.cfg.device)
+            diar_model = SortformerEncLabelModel.restore_from(self.cfg.model_path, map_location='cpu')
         else:
-            diar_model = SortformerEncLabelModel.from_pretrained(self.cfg.model_path, map_location=self.cfg.device)
+            diar_model = SortformerEncLabelModel.from_pretrained(self.cfg.model_path, map_location='cpu')
+
+        # Move to target device after loading
+        if self.cfg.device != 'cpu':
+            diar_model = diar_model.to(self.cfg.device)
 
         # Steaming mode setup
         diar_model.sortformer_modules.chunk_len = self.cfg.chunk_len

@@ -771,8 +771,9 @@ class SaveRestoreConnector:
         try:
             return torch.load(model_weights, map_location=map_location, weights_only=True)
         except Exception as e:
-            logging.error(f"Failed to load checkpoint with weights_only=True: {e}")
-            raise e
+            logging.warning(f"Failed to load checkpoint with weights_only=True: {e}")
+            logging.warning("Retrying with weights_only=False (common on Jetson platforms)")
+            return torch.load(model_weights, map_location=map_location, weights_only=False)
 
     @property
     def model_config_yaml(self) -> str:
