@@ -118,7 +118,8 @@ class NemoStreamingASRService:
         self._total_processing_time = 0.0
         self._sample_rate = sample_rate
 
-        print(f"NemoStreamingASRService initialized with model `{model}` on device `{self.device}`")
+        precision = "FP16 (AMP)" if self.use_amp else "FP32"
+        print(f"NemoStreamingASRService initialized with model `{model}` on device `{self.device}` using {precision}")
 
     def _reset_cache(self):
         (
@@ -277,22 +278,41 @@ class NemoStreamingASRService:
         feature_lengths = torch.tensor([features.shape[1]], device=self.device)
         features = features.unsqueeze(0)  # Add batch dimension
 
+        # Use autocast for FP16 inference if use_amp is enabled
         with torch.no_grad():
-            (
-                encoded,
-                encoded_len,
-                cache_last_channel,
-                cache_last_time,
-                cache_last_channel_len,
-            ) = self.asr_model.encoder.cache_aware_stream_step(
-                processed_signal=features,
-                processed_signal_length=feature_lengths,
-                cache_last_channel=self._cache_last_channel,
-                cache_last_time=self._cache_last_time,
-                cache_last_channel_len=self._cache_last_channel_len,
-                keep_all_outputs=False,
-                drop_extra_pre_encoded=self.drop_extra_pre_encoded,
-            )
+            if self.use_amp and self.device.startswith("cuda"):
+                with torch.cuda.amp.autocast():
+                    (
+                        encoded,
+                        encoded_len,
+                        cache_last_channel,
+                        cache_last_time,
+                        cache_last_channel_len,
+                    ) = self.asr_model.encoder.cache_aware_stream_step(
+                        processed_signal=features,
+                        processed_signal_length=feature_lengths,
+                        cache_last_channel=self._cache_last_channel,
+                        cache_last_time=self._cache_last_time,
+                        cache_last_channel_len=self._cache_last_channel_len,
+                        keep_all_outputs=False,
+                        drop_extra_pre_encoded=self.drop_extra_pre_encoded,
+                    )
+            else:
+                (
+                    encoded,
+                    encoded_len,
+                    cache_last_channel,
+                    cache_last_time,
+                    cache_last_channel_len,
+                ) = self.asr_model.encoder.cache_aware_stream_step(
+                    processed_signal=features,
+                    processed_signal_length=feature_lengths,
+                    cache_last_channel=self._cache_last_channel,
+                    cache_last_time=self._cache_last_time,
+                    cache_last_channel_len=self._cache_last_channel_len,
+                    keep_all_outputs=False,
+                    drop_extra_pre_encoded=self.drop_extra_pre_encoded,
+                )
 
         best_hyp = self._get_best_hypothesis(encoded, encoded_len, partial_hypotheses=self._previous_hypotheses)
 
