@@ -190,6 +190,22 @@ class NemoStreamingASRService:
             )
 
         asr_model.eval()
+
+        # Log memory usage
+        if self.device.startswith("cuda"):
+            device_id = int(self.device.split(":")[-1]) if ":" in self.device else 0
+            mem_allocated = torch.cuda.memory_allocated(device_id) / (1024**3)  # Convert to GB
+            mem_reserved = torch.cuda.memory_reserved(device_id) / (1024**3)
+            print(f"[Memory] STT Model loaded on {self.device}")
+            print(f"[Memory] GPU memory allocated: {mem_allocated:.2f} GB")
+            print(f"[Memory] GPU memory reserved: {mem_reserved:.2f} GB")
+
+            # Count model parameters
+            total_params = sum(p.numel() for p in asr_model.parameters())
+            trainable_params = sum(p.numel() for p in asr_model.parameters() if p.requires_grad)
+            print(f"[Memory] Model parameters: {total_params:,} ({total_params/1e6:.1f}M)")
+            print(f"[Memory] Trainable parameters: {trainable_params:,} ({trainable_params/1e6:.1f}M)")
+
         return asr_model
 
     def _get_best_hypothesis(self, encoded, encoded_len, partial_hypotheses=None):

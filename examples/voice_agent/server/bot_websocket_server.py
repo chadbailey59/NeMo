@@ -155,6 +155,7 @@ async def run_bot_websocket_server(host: str = "0.0.0.0", port: int = 8765):
 
     logger.info("Initializing STT service...")
 
+    logger.info(f"!!! model={STT_MODEL_PATH}, device={STT_DEVICE}, params={stt_params}, sample_rate={SAMPLE_RATE}, audio_passthrough=True, has_turn_taking=True, backend='legacy', decoder_type='rnnt'")
     stt = NemoSTTService(
         model=STT_MODEL_PATH,
         device=STT_DEVICE,
