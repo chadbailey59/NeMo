@@ -110,6 +110,14 @@ class NemoStreamingASRService:
         self._reset_cache()
         self._previous_hypotheses = self._get_blank_hypothesis()
         self._last_transcript_timestamp = time.time()
+
+        # Performance tracking
+        self._last_inference_time = None
+        self._inference_count = 0
+        self._total_audio_duration = 0.0
+        self._total_processing_time = 0.0
+        self._sample_rate = sample_rate
+
         print(f"NemoStreamingASRService initialized with model `{model}` on device `{self.device}`")
 
     def _reset_cache(self):
@@ -253,8 +261,15 @@ class NemoStreamingASRService:
     def transcribe(self, audio: bytes, stream_id: str = "default") -> ASRResult:
         start_time = time.time()
 
+        # Performance tracking
+        if self._last_inference_time is not None:
+            time_since_last_inference = start_time - self._last_inference_time
+        else:
+            time_since_last_inference = 0.0
+
         # Convert bytes to numpy array
         audio_array = np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0
+        audio_duration = len(audio_array) / self._sample_rate
 
         self._audio_buffer.update(audio_array)
 
@@ -313,6 +328,29 @@ class NemoStreamingASRService:
             self._last_transcript_timestamp = current_timestamp
 
         processing_time = time.time() - start_time
+
+        # Update performance metrics
+        self._inference_count += 1
+        self._total_audio_duration += audio_duration
+        self._total_processing_time += processing_time
+        self._last_inference_time = time.time()
+
+        # Calculate real-time factor (RTF)
+        # RTF < 1.0 means processing is faster than real-time
+        rtf = processing_time / audio_duration if audio_duration > 0 else 0.0
+        avg_rtf = self._total_processing_time / self._total_audio_duration if self._total_audio_duration > 0 else 0.0
+
+        # Log performance metrics
+        status = "✓ KEEPING UP" if rtf < 1.0 else "✗ FALLING BEHIND"
+        print(f"[STT Performance] Inference #{self._inference_count}")
+        print(f"  Time since last: {time_since_last_inference*1000:.1f}ms")
+        print(f"  Audio duration:  {audio_duration*1000:.1f}ms")
+        print(f"  Processing time: {processing_time*1000:.1f}ms")
+        print(f"  RTF (current):   {rtf:.3f} {status}")
+        print(f"  RTF (average):   {avg_rtf:.3f}")
+        if text.strip():
+            print(f"  Transcription:   '{text}'")
+
         return ASRResult(
             text=text,
             is_final=is_final,

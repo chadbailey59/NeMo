@@ -90,6 +90,7 @@ class NemoSTTService(STTService):
         self._load_model()
 
         self.audio_buffer = []
+        self._buffer_stats_counter = 0
 
     def _load_model(self):
         if self._backend == "legacy":
@@ -156,8 +157,24 @@ class NemoSTTService(STTService):
             is_final = False
             transcription = None
             self.audio_buffer.append(audio)
+
+            # Log buffer state every 10 frames
+            self._buffer_stats_counter += 1
+            if self._buffer_stats_counter % 10 == 0:
+                buffer_fill = (len(self.audio_buffer) / self._params.buffer_size) * 100
+                logger.debug(f"[STT Buffer] {len(self.audio_buffer)}/{self._params.buffer_size} frames ({buffer_fill:.0f}% full)")
+
             if len(self.audio_buffer) >= self._params.buffer_size:
                 audio = b"".join(self.audio_buffer)
+                # Calculate actual duration from byte size (16-bit samples at sample_rate)
+                num_samples = len(audio) // 2  # 2 bytes per int16 sample
+                actual_duration_ms = (num_samples / self._sample_rate) * 1000
+                expected_duration_ms = (len(self.audio_buffer) * self._params.raw_audio_frame_len_in_secs * 1000)
+                logger.debug(
+                    f"[STT Buffer] Sending {len(self.audio_buffer)} frames "
+                    f"({len(audio)} bytes, {num_samples} samples, {actual_duration_ms:.1f}ms actual, "
+                    f"{expected_duration_ms:.1f}ms expected) to model"
+                )
                 self.audio_buffer = []
 
                 asr_result = self._model.transcribe(audio)
